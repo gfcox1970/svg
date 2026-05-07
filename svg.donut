@@ -1,0 +1,47 @@
+DEFINE
+    /// Returns a donut/progress ring SVG as a data URI
+    /// @param {DECIMAL} percentValue - Progress value from 0 to 1 (e.g. 0.75)
+    /// @param {STRING} outerColour   - Outer ring fill colour hex (e.g. "#DDDDDD")
+    /// @param {STRING} innerColour   - Progress ring stroke colour hex (e.g. "#DC143C")
+    /// @returns SVG data URI suitable for an Image URL category
+    FUNCTION Svg.Donut =
+    (
+        percentValue : DECIMAL VAL,
+        outerColour  : STRING  VAL,
+        innerColour  : STRING  VAL
+    )
+    =>
+    VAR __PercentRaw =
+        COALESCE ( percentValue, 0 )
+    VAR __Percent =
+        MIN ( 1, MAX ( 0, __PercentRaw ) )
+
+    // Ensure decimal separator is '.' for SVG calc(), and encode '#' for data URI safety
+    VAR __PercentText =
+        SUBSTITUTE ( FORMAT ( __Percent, "0.############" ), ",", "." )
+
+    VAR __OuterColour =
+        SUBSTITUTE ( COALESCE ( outerColour, "#EAEBEB" ), "#", "%23" )
+    VAR __InnerColour =
+        SUBSTITUTE ( COALESCE ( innerColour, "#005D99" ), "#", "%23" )
+
+    VAR __DataURI  = "data:image/svg+xml;utf8,"
+    VAR __SVGStart =
+        "<svg height='30' width='30' viewBox='-5 -5 30 30' xmlns='http://www.w3.org/2000/svg'>"
+    VAR __SVGEnd   = "</svg>"
+
+    VAR __OuterCircle =
+        "<circle r='10' cx='10' cy='10' fill='" & __OuterColour & "' />"
+
+    // r=5 => circumference ≈ 2*pi*r = 31.4 (your original constant)
+    VAR __InnerCircle =
+        "<circle r='5' cx='10' cy='10' fill='transparent' " &
+        "stroke='" & __InnerColour & "' stroke-width='10' " &
+        "stroke-dasharray='calc(" & __PercentText & " * 31.4) 31.4' " &
+        "transform='rotate(-90) translate(-20)' />"
+
+    VAR __CircleHole =
+        "<circle r='5' cx='10' cy='10' fill='%23FFFFFF' />"
+
+    RETURN
+        __DataURI & __SVGStart & __OuterCircle & __InnerCircle & __CircleHole & __SVGEnd;
