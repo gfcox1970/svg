@@ -1,0 +1,24 @@
+DEFINE
+	FUNCTION Svg.Progress = (
+		percentValue : DECIMAL VAL,
+		barColour : STRING VAL
+	)
+	=>
+	VAR __percent = VALUE( percentValue )
+	VAR __barWidth = INT( 100 * __percent )
+	VAR __bar = IF( __barWidth < 10, 12, __barWidth )
+	
+	VAR __innerBarColour = Get.Colour( "lightgrey", 0.2)
+	VAR __lineColour = Get.Colour( "lightgrey", 0.6 )
+	
+	VAR __URI = "data:image/svg+xml;utf8, "
+	VAR __startSVG = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='20'>"
+	VAR __endSVG = "</svg>"
+	
+	VAR __outerBar = "<rect x='0' y='4' width='100' height='12' fill='" & __innerBarColour & "' stroke='" & __lineColour & "' rx='4' ry='4'  />"
+	VAR __innerBar = "<rect x='0' y='4' width='" & __bar & "' height='12' fill='" & barColour & "' stroke='" & __lineColour & "' rx='4' ry='4'  />"
+	
+	VAR __resultBar = __URI & __startSVG & __outerBar & __innerBar & __endSVG
+	
+	RETURN
+		__resultBar
