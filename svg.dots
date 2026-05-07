@@ -1,0 +1,47 @@
+DEFINE
+	FUNCTION Svg.Dots = (
+		percentValue : DECIMAL VAL
+	)
+	=>
+	VAR __percentValue = CEILING(percentValue * 10, 1)
+
+VAR __dotColour =
+    SWITCH(
+        TRUE(),
+       	percentValue >= 0.4, Get.Colour( "green", 1 ),
+        percentValue >= 0.3, Get.Colour( "yellow", 1 ),
+        Get.Colour( "red", 1)
+    )
+
+VAR __URI = "data:image/svg+xml;utf8,"
+
+VAR __startSVG =
+    "<svg xmlns='http://www.w3.org/2000/svg' width='400' height='50'>"
+
+VAR __endSVG = "</svg>"
+
+VAR __dotSVG =
+    CONCATENATEX(
+        GENERATESERIES(1, 10, 1),
+        "<circle cx='" & (([Value] - 1) * 40 + 20) &
+        "' cy='20' r='14' fill='" &
+            IF(
+                [Value] <= __percentValue,
+                __dotColour,
+                Get.Colour( "lightgrey", 0.4 )
+            ) &
+        "' stroke='#CCCCCC' />",
+        "",
+        [Value]
+    )
+
+VAR __Result =
+    __URI &
+    SUBSTITUTE(
+        __startSVG & __dotSVG & __endSVG,
+        "#",
+        "%23"   -- ensures URI-safe colour values
+    )
+
+RETURN
+    __Result
