@@ -1,0 +1,19 @@
+DEFINE
+	FUNCTION Svg.Pill = (
+		paymentStatus : STRING VAL
+	)
+	=>
+	VAR __fillColour = SWITCH(
+		TRUE(),
+		paymentStatus = "Paid", Get.Colour( "green", 0.7),
+		Get.Colour( "red", 0.9 )
+	)
+	
+	VAR __URI = "data:image/svg+xml;utf8 ,"
+	VAR __startSVG = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='25'>"
+	VAR __endSVG = "</svg>"
+	VAR __pillSVG = "<rect width='100' height='23' fill='" & __fillColour & "' rx='12' ry='12' />"
+	VAR __textSVG = "<text x='50%' y='50%' fill='#FFF' font-family='Arial' font-size='15' dominant-baseline='middle' text-anchor='middle'>"& paymentStatus &"</text>"
+	VAR __SVG = __URI & __startSVG & __pillSVG & __textSVG & __endSVG
+	RETURN
+		__SVG
