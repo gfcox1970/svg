@@ -1,0 +1,254 @@
+createOrReplace
+
+	/// Uses the dimColours dimension table to lookup a colour and percent value and return the corresponding HEX code
+	/// @colourName {STRING} Name of the colour
+	/// @percentValue {DECIMAL} The percent transparency
+	/// @returns HEX code value as {STRING}
+	function 'Get.Colour' =
+			(
+			        colourName   : STRING,
+			        percentValue : DECIMAL
+			    )
+			    =>
+				// colourName = The name of the colour used in calculation. Must be a STRING
+				// percentValue = The value percent used in calculation. Must be a DECIMAL
+			    VAR _Result = CALCULATE(
+					SELECTEDVALUE( dimColours[HEX Code] ),
+					dimColours[Colour Name] = colourName,
+					dimColours[Percent] = percentValue
+				)
+				RETURN
+					_Result
+		lineageTag: d59790b4-b216-474e-90fe-6dd8e4ad56e3
+
+	/// Returns a donut/progress ring SVG as a data URI
+	/// @param {DECIMAL} percentValue - Progress value from 0 to 1 (e.g. 0.75)
+	/// @param {STRING} outerColour   - Outer ring fill colour hex (e.g. "#DDDDDD")
+	/// @param {STRING} innerColour   - Progress ring stroke colour hex (e.g. "#DC143C")
+	/// @returns SVG data URI suitable for an Image URL category
+	function 'Svg.Donut' =
+			(percentValue: DECIMAL VAL, outerColour: STRING VAL, innerColour: STRING VAL) =>
+			
+					VAR __PercentRaw =
+					COALESCE(
+						percentValue,
+						0
+					)
+			
+					VAR __Percent =
+					MIN(
+						1,
+						MAX(
+							0,
+							__PercentRaw
+						)
+					)
+			
+					// Ensure decimal separator is '.' for SVG calc(), and encode '#' for data URI safety
+					VAR __PercentText =
+					SUBSTITUTE(
+						FORMAT(
+							__Percent,
+							"0.############"
+						),
+						",",
+						"."
+					)
+			
+					VAR __dataURI = "data:image/svg+xml;utf8,"
+					VAR __startSVG =
+					"<svg height='30' width='30' viewBox='-5 -5 30 30' xmlns='http://www.w3.org/2000/svg'>"
+					VAR __endSVG = "</svg>"
+			
+					VAR __outerCircle =
+					"<circle r='10' cx='10' cy='10' fill='" & outerColour & "' />"
+			
+					// r=5 => circumference ≈ 2*pi*r = 31.4
+					VAR __innerCircle =
+					"<circle r='5' cx='10' cy='10' fill='transparent' " &
+					"stroke='" & innerColour & "' stroke-width='10' " &
+					"stroke-dasharray='calc(" & __PercentText & " * 31.4) 31.4' " &
+					"transform='rotate(-90) translate(-20)' />"
+			
+					VAR __circleHole =
+					"<circle r='5' cx='10' cy='10' fill='%23FFFFFF' />"
+			
+					RETURN
+						__dataURI &
+						SUBSTITUTE(
+							__startSVG & __outerCircle & __innerCircle & __circleHole & __endSVG,
+							"#",
+							"%23" -- ensures URI-safe colour values
+						)
+		lineageTag: c9c95c7d-6df8-46d5-ab26-a129ef82a15f
+
+	/// Returns a set of coloured dots SVG as a data URI
+	/// @param {DECIMAL} percentValue - Progress value from 0 to 1 (e.g. 0.75)
+	/// @returns SVG data URI suitable for an Image URL category
+	function 'Svg.Dots' =
+			(percentValue: DECIMAL VAL) =>
+					VAR __percentValue = CEILING(
+						percentValue * 10,
+						1
+					)
+			
+					// Use the function GET.COLOUR to return the required Balfour Beatty corporate colour and transparency value
+					// Transparency any value between 0.1 and 1 in 0.1 steps
+					// View the dimColours table for full list of possible colour names and transparency values
+					// 1 = 100% solid colour, 0.1 = 10% transparency
+			
+					VAR __dotColour =
+					SWITCH(
+						TRUE(),
+						percentValue >= 0.4, GET.COLOUR(
+							"green",
+							1
+						),
+						percentValue >= 0.3, GET.COLOUR(
+							"yellow",
+							1
+						),
+						GET.COLOUR(
+							"red",
+							1
+						)
+					)
+			
+					VAR __dataURI = "data:image/svg+xml;utf8,"
+			
+					VAR __startSVG =
+					"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='50'>"
+			
+					VAR __endSVG = "</svg>"
+			
+					VAR __dotSVG =
+					CONCATENATEX(
+						GENERATESERIES(
+							1,
+							10,
+							1
+						),
+						"<circle cx='" & (([Value] - 1) * 40 + 20) &
+						"' cy='20' r='14' fill='" &
+						IF(
+							[Value] <= __percentValue,
+							__dotColour,
+							GET.COLOUR(
+								"lightgrey",
+								0.4
+							)
+						) &
+						"' stroke='#CCCCCC' />",
+						"",
+						[Value]
+					)
+			
+					RETURN
+						__dataURI &
+						SUBSTITUTE(
+							__startSVG & __dotSVG & __endSVG,
+							"#",
+							"%23" -- ensures URI-safe colour values
+						)
+		lineageTag: 520288aa-c118-4911-8d99-484adabff67d
+
+	/// Returns a square SVG icon as a data URI
+	/// @param {STRING} fillColour   - The hex colour of the icon (e.g. "#DC143C")
+	/// @returns SVG data URI suitable for an Image URL category
+	function 'Svg.Icon' =
+			(fillColour: STRING VAL) =>
+					VAR __dataURI = "data:image/svg+xml;utf8, "
+					VAR __startSVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'>"
+					VAR __endSVG = "</svg>"
+					VAR __iconBox = "<rect width='20' height='20' x='1' y='1' rx='4' ry='4' fill='" & fillColour & "' />"
+					RETURN
+						__dataURI &
+						SUBSTITUTE(
+							__startSVG & __iconBox & __endSVG,
+							"#",
+							"%23" -- ensures URI-safe colour values
+						)
+		lineageTag: de0224e3-77c5-433d-8db9-70ea389e8e15
+
+	/// Returns a coloured pill SVG as a data URI
+	/// @param {STRING} paymentStatus   - The text value to show in a rounded pill colour
+	/// @returns SVG data URI suitable for an Image URL category
+	function 'Svg.Pill' = ```
+			(paymentStatus: STRING VAL) =>
+					// Update SWITCH function to match the required colour values for each possible value
+			
+					// Use the function GET.COLOUR to return the required Balfour Beatty corporate colour and transparency value
+					// Transparency any value between 0.1 and 1 in 0.1 steps
+					// View the dimColours table for full list of possible colour names and transparency values
+					// 1 = 100% solid colour, 0.1 = 10% transparency
+			
+					VAR __fillColour = SWITCH(
+						TRUE(),
+						paymentStatus = "Paid", GET.COLOUR(
+							"green",
+							0.7
+						),
+						GET.COLOUR(
+							"red",
+							0.9
+						)
+					)
+			
+					VAR __dataURI = "data:image/svg+xml;utf8, "
+					VAR __startSVG = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='25'>"
+					VAR __endSVG = "</svg>"
+			
+					VAR __pillSVG = "<rect width='100' height='23' fill='" & __fillColour & "' rx='12' ry='12' />"
+					VAR __textSVG = "<text x='50%' y='50%' fill='#FFF' font-family='Arial' font-size='15' dominant-baseline='middle' text-anchor='middle'>" & paymentStatus & "</text>"
+			
+					// When using a text SVG, DO NOT replace the # in hex colour codes with %23. 
+					// Leave as is to ensure text colours works correctly
+					RETURN
+						__dataURI & __startSVG & __pillSVG & __textSVG & __endSVG
+			```
+		lineageTag: 664d1b0f-327c-41b0-9874-cfe44792d750
+
+	/// Returns a progress bar SVG as a data URI
+	/// @param {DECIMAL} percentValue - Progress value from 0 to 1 (e.g. 0.75)
+	/// @param {STRING} barColour   - The hex colour code to show in the progress bar (e.g. "#DDDDDD")
+	/// @returns SVG data URI suitable for an Image URL category
+	function 'Svg.Progress' =
+			(percentValue: DECIMAL VAL, barColour: STRING VAL) =>
+					VAR __percent = VALUE(percentValue)
+					VAR __barWidth = INT(100 * __percent)
+					VAR __bar = IF(
+						__barWidth < 10,
+						12,
+						__barWidth
+					)
+			
+					// Use the function GET.COLOUR to return the required Balfour Beatty corporate colour and transparency value
+					// Transparency any value between 0.1 and 1 in 0.1 steps
+					// View the dimColours table for full list of possible colour names and transparency values
+					// 1 = 100% solid colour, 0.1 = 10% transparency
+			
+					VAR __innerBarColour = GET.COLOUR(
+						"lightgrey",
+						0.2
+					)
+					VAR __lineColour = GET.COLOUR(
+						"lightgrey",
+						0.6
+					)
+			
+					VAR __dataURI = "data:image/svg+xml;utf8, "
+					VAR __startSVG = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='20'>"
+					VAR __endSVG = "</svg>"
+			
+					VAR __outerBar = "<rect x='0' y='4' width='100' height='12' fill='" & __innerBarColour & "' stroke='" & __lineColour & "' rx='4' ry='4'  />"
+					VAR __innerBar = "<rect x='0' y='4' width='" & __bar & "' height='12' fill='" & barColour & "' stroke='" & __lineColour & "' rx='4' ry='4'  />"
+			
+					RETURN
+						__dataURI &
+						SUBSTITUTE(
+							__startSVG & __outerBar & __innerBar & __endSVG,
+							"#",
+							"%23" -- ensures URI-safe colour values
+						)
+		lineageTag: d3495e74-97e3-4b02-9f38-6800115d5b8d
+
