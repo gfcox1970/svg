@@ -1,0 +1,40 @@
+PieChartSVG = 
+DEFINE
+    FUNCTION PieChartSVG([Value] AS DOUBLE) RETURNS TEXT
+    VAR _value = MAX(0, MIN(1, [Value]))  -- Clamp between 0 and 1
+    VAR _cx = 15        -- Center X (half of 30px)
+    VAR _cy = 15        -- Center Y (half of 30px)
+    VAR _r  = 14.45     -- Radius (slightly less than 15 to account for stroke)
+    
+    -- Full circle shortcut when value = 1
+    VAR _isFullCircle = IF(_value >= 1, TRUE(), FALSE())
+    
+    -- Calculate end point of the arc using SVG arc math
+    -- Angle in radians, starting from top (−90°) going clockwise
+    VAR _angle   = _value * 2 * PI()                     -- radians
+    VAR _endX    = _cx + _r * SIN(_angle)                -- X end point
+    VAR _endY    = _cy - _r * COS(_angle)                -- Y end point
+    VAR _largeArc = IF(_value > 0.5, 1, 0)              -- SVG large-arc-flag
+
+    -- Build the SVG path for the filled (black) slice
+    VAR _path = 
+        IF(
+            _isFullCircle,
+            -- Full circle: draw as a complete circle element
+            "<circle cx='" & _cx & "' cy='" & _cy & "' r='" & _r & "' fill='black'/>",
+            -- Partial slice: M = move to center, L = line to top, A = arc to end point, Z = close
+            "<path d='M " & _cx & " " & _cy &
+            " L " & _cx & " " & (_cy - _r) &
+            " A " & _r & " " & _r & " 0 " & _largeArc & " 1 " &
+            _endX & " " & _endY &
+            " Z' fill='black'/>"
+        )
+
+    -- Assemble full SVG
+    VAR _svg = 
+        "<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'>" &
+        "<circle cx='" & _cx & "' cy='" & _cy & "' r='" & _r & "' fill='white' stroke='black' stroke-width='0.1'/>" &
+        _path &
+        "</svg>"
+    
+    RETURN _svg
